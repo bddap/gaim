@@ -31,13 +31,22 @@ var gamestate = {
 	x: undefined,
 	y: undefined
     },
-    lastTick: 0
+    lastTick: 0,
+    keys: []
 }
 
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
 document.body.appendChild(canvas)
 document.body.style.margin = '0px'
+
+window.onkeyup = e => {
+    gamestate.keys[e.keyCode] = false;
+}
+
+window.onkeydown = e => {
+    gamestate.keys[e.keyCode] = true;
+}
 
 window.onresize = e => {
     canvas.width = window.innerWidth
@@ -131,9 +140,39 @@ function gravitate(thing, elapsed) {
     gamestate.player.vel.y += dir.y / square(dist) * elapsed * thing.attraction
 }
 
+function boost(power) {
+    gamestate.player.vel.x -= Math.sin(gamestate.player.rot) * power
+    gamestate.player.vel.y += Math.cos(gamestate.player.rot) * power
+}
+
+function thrustControl() {
+    let r = 1
+    if (gamestate.keys[38]) // up arrow
+	r += 1
+    if (gamestate.keys[40]) // down arrow
+	r -= 1
+    return r
+}
+
+function rotationControl() {
+    let r = 0
+    if (gamestate.keys[37]) // left arrow
+	r -= 1;
+    if (gamestate.keys[39]) // right arrow
+	r += 1;
+    return r
+}
+
+function airDrag(elapsed) {
+    // TODO
+}
+
 function tick(t) {
     const elapsed = (t - gamestate.lastTick) / 1000
     gamestate.lastTick = t
+    gamestate.player.rot += rotationControl() * elapsed * Math.PI * 2
+    airDrag(elapsed)
+    boost(thrustControl() * elapsed)
     gamestate.player.pos.x += gamestate.player.vel.x * elapsed
     gamestate.player.pos.y += gamestate.player.vel.y * elapsed
     nearby().forEach(thing => gravitate(thing, elapsed))
@@ -145,9 +184,6 @@ function draw(t) {
     clear()
     drawPlayer()
     drawWorld()
-    // gamestate.player.rot += 0.01
-    // gamestate.player.pos.y -= 0.01
-    // gamestate.player.pos.x += 0.01
 }
 draw(0)
 
