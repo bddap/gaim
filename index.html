@@ -19,6 +19,10 @@ var gamestate = {
 	    x: 0,
 	    y: 0
 	},
+	vel: {
+	    x: 0,
+	    y: 0
+	},
 	rot: 0
     },
     world: {},
@@ -26,7 +30,8 @@ var gamestate = {
     center: {
 	x: undefined,
 	y: undefined
-    }
+    },
+    lastTick: 0
 }
 
 const canvas = document.createElement('canvas')
@@ -37,7 +42,7 @@ document.body.style.margin = '0px'
 window.onresize = e => {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    scale = Math.min(canvas.width, canvas.height) / 2
+    scale = Math.max(canvas.width, canvas.height) / 2
     gamestate.center.x = canvas.width / 2
     gamestate.center.y = canvas.height / 2
 }
@@ -71,11 +76,12 @@ function drawThing(thing) {
 }
 
 function createSector([x, y]) {
-    const count = Math.floor(noiser.noise(x+0.5, y+0.5, 0) * 3)
+    const count = Math.ceil(noiser.noise(x+0.5, y+0.5, 0) * 2)
     return Array(count).fill(1).map((_, i) => {
 	return {
-	    x: x + noiser.noise(x+0.5, y+0.5, i+0.1),
-	    y: y + noiser.noise(x+0.5, y+0.5, i+0.2)
+	    x: x + noiser.noise(x+0.5, y+0.5, i+0.1) - 0.5,
+	    y: y + noiser.noise(x+0.5, y+0.5, i+0.2) - 0.5,
+	    attraction: 0.1
 	}
     })
 }
@@ -91,7 +97,10 @@ function nearby() {
 	[-1,-1],[0,-1],[1,-1],
 	[-1,0],[0,0],[1,0],
 	[-1,1],[0,1],[1,1]
-    ].map(getSector)
+    ].map(([x, y]) => [
+	Math.round(gamestate.player.pos.x + x),
+	Math.round(gamestate.player.pos.y + y)
+    ]).map(getSector)
     const things = [].concat(...sectors)
     return things
 }
@@ -100,13 +109,46 @@ function drawWorld() {
     nearby().forEach(drawThing)
 }
 
-function draw() {
+function square(x) {
+    return x * x
+}
+
+function magnitude(pos) {
+    return Math.sqrt(square(pos.x) + square(pos.y))
+}
+
+function difference(posa, posb) {
+    return {
+	x: posa.x - posb.x,
+	y: posa.y - posb.y
+    }
+}
+
+function gravitate(thing, elapsed) {
+    const dir = difference(thing, gamestate.player.pos)
+    const dist = magnitude(dir)
+    gamestate.player.vel.x += dir.x / square(dist) * elapsed * thing.attraction
+    gamestate.player.vel.y += dir.y / square(dist) * elapsed * thing.attraction
+}
+
+function tick(t) {
+    const elapsed = (t - gamestate.lastTick) / 1000
+    gamestate.lastTick = t
+    gamestate.player.pos.x += gamestate.player.vel.x * elapsed
+    gamestate.player.pos.y += gamestate.player.vel.y * elapsed
+    nearby().forEach(thing => gravitate(thing, elapsed))
+}
+
+function draw(t) {
     requestAnimationFrame(draw)
+    tick(t)
     clear()
     drawPlayer()
     drawWorld()
     // gamestate.player.rot += 0.01
+    // gamestate.player.pos.y -= 0.01
+    // gamestate.player.pos.x += 0.01
 }
-draw()
+draw(0)
 
 </script></html>
