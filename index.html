@@ -1,0 +1,112 @@
+<html><head/><body/>
+<script src="perlin.js"></script>
+<script>
+
+const color0 = '#64BB3E'
+const color1 = '#EAF3E7'
+const color2 = '#AAE392'
+const color3 = '#36940E'
+const color4 = '#1C5E00'
+
+const playersize = 0.1
+
+const noiser = new Perlin('gaim')
+const noiserb = new Perlin('bgaim')
+
+var gamestate = {
+    player: {
+	pos: {
+	    x: 0,
+	    y: 0
+	},
+	rot: 0
+    },
+    world: {},
+    scale: undefined,
+    center: {
+	x: undefined,
+	y: undefined
+    }
+}
+
+const canvas = document.createElement('canvas')
+const ctx = canvas.getContext('2d')
+document.body.appendChild(canvas)
+document.body.style.margin = '0px'
+
+window.onresize = e => {
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    scale = Math.min(canvas.width, canvas.height) / 2
+    gamestate.center.x = canvas.width / 2
+    gamestate.center.y = canvas.height / 2
+}
+window.onresize()
+
+const clear = () => {
+    ctx.fillStyle = color0
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+}
+
+function drawPlayer() {
+    ctx.fillStyle = color2
+    ctx.translate(gamestate.center.x, gamestate.center.y)
+    ctx.scale(scale, scale)
+    ctx.rotate(gamestate.player.rot)
+    ctx.scale(playersize, playersize)
+    ctx.fillRect(-0.5, -0.5, 1, 1)
+    ctx.fillRect(-0.25, 0.5, 0.5, 0.5)
+    ctx.resetTransform()
+}
+
+function drawThing(thing) {
+    ctx.fillStyle = color3
+    ctx.translate(gamestate.center.x, gamestate.center.y)
+    ctx.scale(scale, scale)
+    ctx.translate(-gamestate.player.pos.x, -gamestate.player.pos.y)
+    ctx.translate(thing.x, thing.y)
+    ctx.scale(playersize, playersize)
+    ctx.fillRect(-0.5, -0.5, 1, 1)
+    ctx.resetTransform()
+}
+
+function createSector([x, y]) {
+    const count = Math.floor(noiser.noise(x+0.5, y+0.5, 0) * 3)
+    return Array(count).fill(1).map((_, i) => {
+	return {
+	    x: x + noiser.noise(x+0.5, y+0.5, i+0.1),
+	    y: y + noiser.noise(x+0.5, y+0.5, i+0.2)
+	}
+    })
+}
+
+function getSector([x, y]) {
+    if (gamestate.world[[x, y]] === undefined)
+	gamestate.world[[x, y]] = createSector([x, y])
+    return gamestate.world[[x, y]]
+}
+
+function nearby() {
+    const sectors = [
+	[-1,-1],[0,-1],[1,-1],
+	[-1,0],[0,0],[1,0],
+	[-1,1],[0,1],[1,1]
+    ].map(getSector)
+    const things = [].concat(...sectors)
+    return things
+}
+
+function drawWorld() {
+    nearby().forEach(drawThing)
+}
+
+function draw() {
+    requestAnimationFrame(draw)
+    clear()
+    drawPlayer()
+    drawWorld()
+    // gamestate.player.rot += 0.01
+}
+draw()
+
+</script></html>
