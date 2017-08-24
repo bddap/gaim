@@ -70,6 +70,12 @@ function drawPlayer() {
     ctx.scale(playersize, playersize)
     ctx.fillRect(-0.5, -0.5, 1, 1)
     ctx.fillRect(-0.25, 0.5, 0.5, 0.5)
+    // Show thruster
+    ctx.fillStyle = color4
+    if (gamestate.keys[38]) // up arrow
+	ctx.fillRect(-0.1, -0.7, 0.2, 0.2)
+    if (gamestate.keys[40]) // down arrow
+    	ctx.fillRect(-0.1, 1, 0.2, 0.2)
     ctx.resetTransform()
 }
 
